@@ -1,0 +1,110 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String  @id @default(auto()) @map("_id") @db.ObjectId 
+  userId     String  @unique
+  firstName  String
+  lastName   String
+  email      String  @unique
+  password   String
+  role       Role
+  createdAt  DateTime @default(now())
+  LastLoginAt DateTime?
+
+  teacher    Teacher? @relation
+  student    Student? @relation
+}
+
+model Teacher {
+  id         String  @id @default(auto()) @map("_id") @db.ObjectId 
+  teacherId  String  @unique
+  userId     String  @unique
+  user       User    @relation(fields: [userId], references: [userId])
+  classes    Class[]  @relation("TeacherClasses")
+}
+
+
+
+enum Role {
+  Student
+  Teacher
+}
+
+model Student {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId 
+  studentId  String   @unique
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [userId])
+  submissions AssignmentSubmission[]
+}
+
+model Class {
+  id               String     @id @default(auto()) @map("_id") @db.ObjectId
+  classId          String     @unique
+  teacherId        String
+  teacher          Teacher    @relation(fields: [teacherId], references: [teacherId], name: "TeacherClasses")
+
+  name             String
+  description      String?
+  learningOutcomes String?
+  schedule         String?
+  classCode        String     @unique
+  createdAt        DateTime   @default(now())
+  studentIds       String[]
+
+  resources        Resource[] @relation("ClassResources")
+  assignments Assignment[]
+}
+
+model Resource {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  classId     String
+  class       Class    @relation("ClassResources", fields: [classId], references: [classId])
+  description String
+  url         String
+  createdAt   DateTime @default(now())
+}
+
+model Assignment {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  assignmentId String  @unique
+  classId     String
+  class       Class    @relation(fields: [classId], references: [classId])
+  title       String
+  description String?
+  fileUrl     String
+  dueDate     DateTime
+  createdAt   DateTime @default(now())
+
+  submissions AssignmentSubmission[]
+}
+
+model AssignmentSubmission {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  submissionId   String   @unique
+  assignmentId   String
+  studentId      String
+  fileUrl        String
+  submittedAt    DateTime @default(now())
+  isLate         Boolean
+
+  assignment     Assignment @relation(fields: [assignmentId], references: [assignmentId])
+  student        Student    @relation(fields: [studentId], references: [studentId])
+  
+   @@unique([assignmentId, studentId])
+}
+
+
